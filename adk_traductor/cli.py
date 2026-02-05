@@ -20,6 +20,8 @@ def _build_parser() -> argparse.ArgumentParser:
     p_file.add_argument("--out", dest="out_path", required=True)
     p_file.add_argument("--overwrite", action="store_true")
     p_file.add_argument("--translate-code-comments", action="store_true")
+    p_file.add_argument("--provider", choices=["gemini", "openai", "anthropic", "github"], default=None, help="LLM provider (default: gemini)")
+    p_file.add_argument("--model", default="gemini-2.5-flash", help="Model name (default: gemini-2.5-flash)")
 
     p_batch = sub.add_parser("batch", help="Traduce múltiples archivos en paralelo")
     p_batch.add_argument("--paths", nargs="+", required=True)
@@ -29,6 +31,8 @@ def _build_parser() -> argparse.ArgumentParser:
     p_batch.add_argument("--overwrite", action="store_true")
     p_batch.add_argument("--translate-code-comments", action="store_true")
     p_batch.add_argument("--fail-fast", action="store_true")
+    p_batch.add_argument("--provider", choices=["gemini", "openai", "anthropic", "github"], default=None, help="LLM provider (default: gemini)")
+    p_batch.add_argument("--model", default="gemini-2.5-flash", help="Model name (default: gemini-2.5-flash)")
 
     return p
 
@@ -39,6 +43,8 @@ async def _run(args: argparse.Namespace) -> int:
             translate_code_comments=args.translate_code_comments,
             overwrite=args.overwrite,
             jobs=1,
+            model=args.model,
+            provider=args.provider,
         )
         await translate_file(
             Path(args.in_path),
@@ -50,6 +56,8 @@ async def _run(args: argparse.Namespace) -> int:
     if args.cmd == "batch":
         options = TranslateOptions(
             translate_code_comments=args.translate_code_comments,
+            model=args.model,
+            provider=args.provider,
             overwrite=args.overwrite,
             jobs=args.jobs,
         )

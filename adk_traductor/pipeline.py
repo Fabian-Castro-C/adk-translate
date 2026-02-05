@@ -3,11 +3,19 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
-from .adk_translate import AdkTranslator
+from .adk_translate import AdkTranslateConfig, AdkTranslator
+from .copilot_translate import CopilotTranslateConfig, CopilotTranslator
 from .md.comments import extract_comment_line, replace_comment_payload
 from .md.protect import protect_markdown_inline, unprotect
 from .md.segmenter import Segment, join_segments, split_markdown
+
+
+class Translator(Protocol):
+    """Protocol for translator implementations."""
+    async def translate_text(self, text: str) -> str: ...
+    async def translate_many_texts(self, texts: list[str], *, jobs: int) -> list[str]: ...
 
 
 @dataclass(frozen=True)
@@ -15,16 +23,18 @@ class TranslateOptions:
     translate_code_comments: bool = False
     overwrite: bool = False
     jobs: int = 4
+    model: str = "gemini-2.5-flash"
+    provider: str | None = None
 
 
-async def _translate_text_segment(translator: AdkTranslator, text: str) -> str:
+async def _translate_text_segment(translator: Translator, text: str) -> str:
     protected = protect_markdown_inline(text)
     translated = await translator.translate_text(protected.text)
     return unprotect(translated, protected.mapping)
 
 
 async def _translate_code_fence_comments(
-    translator: AdkTranslator, segment: Segment
+    translator: Translator, segment: Segment
 ) -> Segment:
     lines = segment.text.splitlines(keepends=True)
     if len(lines) < 2:
@@ -61,9 +71,10 @@ async def translate_markdown(
     md: str,
     *,
     options: TranslateOptions,
-    translator: AdkTranslator | None = None,
+    translator: Translator | None = None,
 ) -> str:
-    translator = translator or AdkTranslator()
+    if translator is None:
+        translator = _create_translator(options)
 
     segments = split_markdown(md)
     out: list[Segment] = []

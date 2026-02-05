@@ -4,16 +4,25 @@ import asyncio
 import os
 import uuid
 from dataclasses import dataclass
+from typing import Literal
 
 from google.adk.agents import Agent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
+# Conditional import for LiteLLM
+try:
+    from google.adk.models.lite_llm import LiteLlm
+    LITELLM_AVAILABLE = True
+except ImportError:
+    LITELLM_AVAILABLE = False
+
 
 @dataclass(frozen=True)
 class AdkTranslateConfig:
     model: str = "gemini-2.5-flash"
+    provider: Literal["gemini", "openai", "anthropic", "github"] | None = None
     app_name: str = "adk_md_translator"
     user_id: str = "translator"
 
@@ -22,9 +31,12 @@ class AdkTranslator:
     def __init__(self, config: AdkTranslateConfig | None = None):
         self._config = config or AdkTranslateConfig()
 
+        # Determine model configuration
+        model_config = self._prepare_model_config()
+
         self._agent = Agent(
             name="md_translator",
-            model=self._config.model,
+            model=model_config,
             description="Traduce texto del inglés al español preservando placeholders.",
             instruction=(
                 "Eres un traductor profesional EN→ES.\n"
@@ -36,6 +48,35 @@ class AdkTranslator:
             ),
             tools=[],
         )
+
+    def _prepare_model_config(self) -> str | object:
+        """Prepara la configuración del modelo según el provider."""
+        provider = self._config.provider
+        model = self._config.model
+
+        # Sin provider o gemini explícito -> string directo (default behavior)
+        if provider is None or provider == "gemini":
+            return model
+
+        # Provider externo -> requiere LiteLLM
+        if not LITELLM_AVAILABLE:
+            raise RuntimeError(
+                f"Provider '{provider}' requiere LiteLLM. Instala: pip install litellm"
+            )
+
+        # Mapeo provider -> LiteLLM format
+        provider_prefixes = {
+            "openai": "openai/",
+            "anthropic": "anthropic/",
+            "github": "github/",  # GitHub models via LiteLLM
+        }
+
+        prefix = provider_prefixes.get(provider)
+        if prefix is None:
+            raise ValueError(f"Provider no soportado: {provider}")
+
+        litellm_model = f"{prefix}{model}"
+        return LiteLlm(model=litellm_model)
 
     def _ensure_api_key(self) -> None:
         if not os.getenv("GOOGLE_API_KEY"):

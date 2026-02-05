@@ -1,6 +1,6 @@
 # Traductor ADK (EN→ES)
 
-Herramienta CLI para traducir documentación Markdown del inglés al español usando **Google ADK** (Agent Development Kit).
+Herramienta CLI para traducir documentación Markdown del inglés al español usando **Google ADK** (Agent Development Kit) con soporte multi-provider.
 
 ## ✨ Características
 
@@ -10,6 +10,7 @@ Herramienta CLI para traducir documentación Markdown del inglés al español us
 - ✅ Opcionalmente traduce **solo comentarios** dentro de code fences
 - ✅ Procesamiento **paralelo** para múltiples archivos
 - ✅ Replica estructura de directorios en output
+- ✅ **Multi-provider**: Gemini, OpenAI, Anthropic, GitHub Models
 
 ## 🚀 Quick Start
 
@@ -21,39 +22,78 @@ cd traductor
 
 # uv maneja Python + deps automáticamente
 uv sync
+
+# Para soporte de providers externos (OpenAI, Anthropic, etc.)
+uv sync --extra litellm
 ```
 
 ### 2. Configurar API Key
 
+**Opción A: Usar Gemini (default)**
+
 ```powershell
-# Opción 1: Variable de entorno (recomendado)
+# Variable de entorno
 $env:GOOGLE_API_KEY="tu_clave_de_gemini"
 
-# Opción 2: Archivo .env
+# O usar .env
 copy .env.example .env
-# Edita .env y agrega tu clave
+# Edita .env y agrega: GOOGLE_API_KEY=...
 ```
 
 Obtén tu API key en: [Google AI Studio - API Keys](https://aistudio.google.com/app/apikey)
 
+**Opción B: Usar OpenAI**
+
+```powershell
+$env:OPENAI_API_KEY="sk-..."
+```
+
+**Opción C: Usar Anthropic**
+
+```powershell
+$env:ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+**Opción D: Usar GitHub Models** (requiere GitHub Copilot)
+
+```powershell
+$env:GITHUB_TOKEN="ghp_..."
+```
+
 ### 3. Uso Básico
 
 ```powershell
-# Traducir un archivo
+# Traducir con Gemini (default)
 uv run translate.py file --in examples/sample.md --out output/sample_es.md
 
-# Traducir con comentarios de código
+# Traducir con OpenAI GPT-4
 uv run translate.py file `
   --in examples/sample.md `
   --out output/sample_es.md `
-  --translate-code-comments
+  --provider openai `
+  --model gpt-4o
+
+# Traducir con Anthropic Claude
+uv run translate.py file `
+  --in examples/sample.md `
+  --out output/sample_es.md `
+  --provider anthropic `
+  --model claude-sonnet-4-20250514
+
+# Traducir con GitHub Models
+uv run translate.py file `
+  --in examples/sample.md `
+  --out output/sample_es.md `
+  --provider github `
+  --model gpt-4o
 
 # Batch paralelo (múltiples archivos)
 uv run translate.py batch `
   --paths examples/sample.md examples/another.md `
   --root examples `
   --out-dir output `
-  --jobs 4
+  --jobs 4 `
+  --provider openai
 ```
 
 ## 📖 Comandos CLI
@@ -67,6 +107,8 @@ uv run translate.py file --in INPUT.md --out OUTPUT.md [OPTIONS]
 **Opciones**:
 - `--translate-code-comments`: Traduce comentarios dentro de code fences
 - `--overwrite`: Sobrescribe archivo de salida si existe
+- `--provider {gemini,openai,anthropic,github}`: Provider del LLM (default: gemini)
+- `--model MODEL_NAME`: Modelo específico (default: gemini-2.5-flash)
 
 ### `batch` - Traducir múltiples archivos
 
@@ -83,6 +125,22 @@ uv run translate.py batch `
 - `--translate-code-comments`: Traduce comentarios en código
 - `--fail-fast`: Detiene ejecución al primer error
 - `--overwrite`: Sobrescribe archivos existentes
+- `--provider {gemini,openai,anthropic,github}`: Provider del LLM
+- `--model MODEL_NAME`: Modelo específico
+
+## 🌐 Providers Soportados
+
+| Provider | Modelos Ejemplo | API Key Required | Install Extra |
+|----------|-----------------|------------------|---------------|
+| **Gemini** (default) | `gemini-2.5-flash`, `gemini-2.5-pro` | `GOOGLE_API_KEY` | ❌ |
+| **OpenAI** | `gpt-4o`, `gpt-4o-mini` | `OPENAI_API_KEY` | ✅ `litellm` |
+| **Anthropic** | `claude-sonnet-4-20250514`, `claude-opus-4-20250514` | `ANTHROPIC_API_KEY` | ✅ `litellm` |
+| **GitHub** | `gpt-4o`, `claude-3-opus` | `GITHUB_TOKEN` | ✅ `litellm` |
+
+**Nota**: Los providers externos requieren instalar LiteLLM:
+```powershell
+uv sync --extra litellm
+```
 
 ## 🔬 Tests
 
