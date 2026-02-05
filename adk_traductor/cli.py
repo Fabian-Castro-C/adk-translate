@@ -19,7 +19,6 @@ def _build_parser() -> argparse.ArgumentParser:
     p_file.add_argument("--in", dest="in_path", required=True)
     p_file.add_argument("--out", dest="out_path", required=True)
     p_file.add_argument("--overwrite", action="store_true")
-    p_file.add_argument("--translate-code-comments", action="store_true")
     p_file.add_argument("--provider", choices=["gemini", "openai", "anthropic", "github", "copilot-sdk"], default=None, help="LLM provider (default: gemini)")
     p_file.add_argument("--model", default="gemini-2.5-flash", help="Model name (default: gemini-2.5-flash)")
 
@@ -29,7 +28,6 @@ def _build_parser() -> argparse.ArgumentParser:
     p_batch.add_argument("--out-dir", required=True)
     p_batch.add_argument("--jobs", type=int, default=4)
     p_batch.add_argument("--overwrite", action="store_true")
-    p_batch.add_argument("--translate-code-comments", action="store_true")
     p_batch.add_argument("--fail-fast", action="store_true")
     p_batch.add_argument("--provider", choices=["gemini", "openai", "anthropic", "github", "copilot-sdk"], default=None, help="LLM provider (default: gemini)")
     p_batch.add_argument("--model", default="gemini-2.5-flash", help="Model name (default: gemini-2.5-flash)")
@@ -40,7 +38,6 @@ def _build_parser() -> argparse.ArgumentParser:
 async def _run(args: argparse.Namespace) -> int:
     if args.cmd == "file":
         options = TranslateOptions(
-            translate_code_comments=args.translate_code_comments,
             overwrite=args.overwrite,
             jobs=1,
             model=args.model,

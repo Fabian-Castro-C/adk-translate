@@ -2,50 +2,54 @@
 
 ## Setup Inicial
 
-### 1. Crear entorno virtual
+### 1. Instalar con uv (recomendado)
 ```powershell
 cd traductor
-python -m venv .venv
-.venv\Scripts\Activate.ps1
+uv sync
+
+# Para OpenAI, Anthropic, GitHub Models
+uv sync --extra litellm
+
+# Para Copilot SDK
+uv sync --extra copilot
 ```
 
-### 2. Instalar dependencias
+### 2. Configurar API key
 ```powershell
-pip install -r requirements.txt
-```
-
-### 3. Configurar API key
-```powershell
-# Copia el ejemplo
-copy .env.example .env
-
-# Edita .env y agrega tu GOOGLE_API_KEY
-notepad .env
-```
-
-O exporta directamente:
-```powershell
+# Para Gemini (default)
 $env:GOOGLE_API_KEY="tu_clave_aqui"
+
+# Para OpenAI
+$env:OPENAI_API_KEY="sk-..."
+
+# Para Anthropic
+$env:ANTHROPIC_API_KEY="sk-ant-..."
+
+# Para GitHub Models
+$env:GITHUB_TOKEN="ghp_..."
+
+# Para Copilot SDK: no necesita, usa tu sesión activa
 ```
 
 ## Uso Básico
 
-### Traducir un archivo
+### Traducir un archivo (comentarios incluidos automáticamente)
 ```powershell
-python translate.py file --in examples/sample.md --out output/sample_es.md
+uv run translate.py file --in examples/sample.md --out output/sample_es.md
 ```
 
-### Traducir con comentarios de código
+### Traducir con provider específico
 ```powershell
-python translate.py file `
+uv run translate.py file `
   --in examples/sample.md `
   --out output/sample_es.md `
-  --translate-code-comments
+  --provider openai `
+  --model gpt-4o
 ```
 
 ### Batch paralelo (múltiples archivos)
 ```powershell
-python translate.py batch `
+uv run translate.py batch `
   --paths "examples/sample.md" "examples/another.md" `
   --root examples `
   --out-dir output `
@@ -59,18 +63,17 @@ Get-ChildItem -Path ..\adk-docs\docs\agents -Filter *.md -Recurse |
   ForEach-Object { $_.FullName } > paths.txt
 
 # Luego traduce
-python translate.py batch `
+uv run translate.py batch `
   --paths @(Get-Content paths.txt) `
   --root ..\adk-docs\docs `
   --out-dir output `
-  --jobs 4 `
-  --translate-code-comments
+  --jobs 4
 ```
 
 ## Tests
 
 ```powershell
-python tests/test_basic.py
+uv run tests/test_basic.py
 ```
 
 ## Troubleshooting
@@ -88,16 +91,28 @@ FileExistsError: Output exists: output/sample_es.md
 **Solución**: Usa `--overwrite` para sobrescribir.
 
 ### Traducción incompleta o código alterado
-**Causa probable**: El LLM interpretó mal los placeholders o los comentarios.
+**Causa probable**: El LLM necesita ajuste en las instrucciones.
 
 **Solución**:
 1. Revisa el archivo de salida
-2. Si el código cambió, reporta el caso (podemos ajustar las heurísticas)
-3. Usa `--translate-code-comments=false` para mayor seguridad
+2. Los comentarios se traducen automáticamente
+3. El código se preserva automáticamente
+4. Si hay problemas, reporta el caso
 
-## Limitaciones
+## Qué Traduce y Qué Preserva
 
-- **No traduce código**: Solo texto Markdown y comentarios (si se activa `--translate-code-comments`)
+### ✅ SÍ Traduce
+- Títulos y subtítulos
+- Párrafos de texto
+- Listas y tablas
+- **Comentarios dentro del código** (#, //, /* */)
+
+### ❌ NO Traduce (Preserva)
+- Código (variables, funciones, imports)
+- Inline code (`variable`)
+- URLs y links
+- HTML tags
+- Frontmatter YAML
 - **Comentarios inline complejos**: Se ignoran para evitar falsos positivos
 - **Costo**: Cada archivo = 1+ llamadas a Gemini (según tamaño/segmentos)
 - **Calidad**: Depende del modelo; puede requerir revisión humana

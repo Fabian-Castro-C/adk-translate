@@ -4,13 +4,13 @@ Herramienta CLI para traducir documentación Markdown del inglés al español us
 
 ## ✨ Características
 
-- ✅ Traduce texto normal del Markdown a español
-- ✅ **Preserva bloques de código** (no traduce el código)
-- ✅ **Preserva inline code** (`` `...` ``) y URLs
-- ✅ Opcionalmente traduce **solo comentarios** dentro de code fences
+- ✅ Traduce documentación Markdown del inglés al español
+- ✅ **Preserva código** (variables, funciones, imports, paths)
+- ✅ **Traduce comentarios** dentro del código (#, //, /* */)
+- ✅ **Preserva inline code** (`` `...` ``), URLs, HTML, YAML
 - ✅ Procesamiento **paralelo** para múltiples archivos
-- ✅ Replica estructura de directorios en output
-- ✅ **Multi-provider**: Gemini, OpenAI, Anthropic, GitHub Models
+- ✅ **Multi-provider**: Gemini, OpenAI, Anthropic, GitHub Models, Copilot SDK
+- ✅ **Simple**: El LLM maneja todo automáticamente
 
 ## 🚀 Quick Start
 
@@ -70,7 +70,7 @@ $env:GITHUB_TOKEN="ghp_..."
 ### 3. Uso Básico
 
 ```powershell
-# Traducir con Gemini (default)
+# Traducir con Gemini (default) - comentarios incluidos automáticamente
 uv run translate.py file --in examples/sample.md --out output/sample_es.md
 
 # Traducir con OpenAI GPT-4
@@ -87,13 +87,6 @@ uv run translate.py file `
   --provider anthropic `
   --model claude-sonnet-4-20250514
 
-# Traducir con GitHub Models
-uv run translate.py file `
-  --in examples/sample.md `
-  --out output/sample_es.md `
-  --provider github `
-  --model gpt-4o
-
 # Traducir con GitHub Copilot SDK (usa tu sesión de Copilot, sin API keys)
 uv run translate.py file `
   --in examples/sample.md `
@@ -106,8 +99,7 @@ uv run translate.py batch `
   --paths examples/sample.md examples/another.md `
   --root examples `
   --out-dir output `
-  --jobs 4 `
-  --provider copilot-sdk
+  --jobs 4
 ```
 
 ## 📖 Comandos CLI
@@ -119,10 +111,11 @@ uv run translate.py file --in INPUT.md --out OUTPUT.md [OPTIONS]
 ```
 
 **Opciones**:
-- `--translate-code-comments`: Traduce comentarios dentro de code fences
 - `--overwrite`: Sobrescribe archivo de salida si existe
 - `--provider {gemini,openai,anthropic,github,copilot-sdk}`: Provider del LLM (default: gemini)
 - `--model MODEL_NAME`: Modelo específico (default: gemini-2.5-flash)
+
+**Nota**: Los comentarios en código se traducen automáticamente. El LLM maneja la preservación de código y traducción de comentarios de forma inteligente.
 
 ### `batch` - Traducir múltiples archivos
 
@@ -136,7 +129,6 @@ uv run translate.py batch `
 
 **Opciones**:
 - `--jobs N`: Número de archivos a procesar en paralelo (default: 4)
-- `--translate-code-comments`: Traduce comentarios en código
 - `--fail-fast`: Detiene ejecución al primer error
 - `--overwrite`: Sobrescribe archivos existentes
 - `--provider {gemini,openai,anthropic,github,copilot-sdk}`: Provider del LLM
@@ -181,9 +173,26 @@ $env:GOOGLE_API_KEY="tu_clave"
 uv run tests/test_integration.py
 ```
 
-## 🛡️ Garantías de Preservación
+## 🛡️ Cómo Funciona
 
-El traductor implementa los siguientes **invariantes**:
+El traductor usa **instrucciones precisas al LLM** para manejar todo automáticamente:
+
+**Traduce**:
+- ✅ Títulos, párrafos, listas
+- ✅ Comentarios en código (`#`, `//`, `/* */`)
+- ✅ Texto en general
+
+**Preserva exactamente**:
+- ❌ Código Python, JavaScript, Go, etc.
+- ❌ Inline code (`` `variable` ``)
+- ❌ URLs y links
+- ❌ HTML tags
+- ❌ Frontmatter YAML
+- ❌ Nombres de variables, funciones, imports
+
+## 🛡️ Invariantes del Sistema
+
+El LLM sigue estas reglas estrictas:
 
 1. **Estructura**: Los paths relativos se preservan en output
 2. **Code Fences**: Número y lenguaje de fences idéntico (`` ```python `` → `` ```python ``)

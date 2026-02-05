@@ -37,14 +37,23 @@ class AdkTranslator:
         self._agent = Agent(
             name="md_translator",
             model=model_config,
-            description="Traduce texto del inglés al español preservando placeholders.",
+            description="Traduce Markdown del inglés al español preservando código.",
             instruction=(
-                "Eres un traductor profesional EN→ES.\n"
-                "Reglas estrictas:\n"
-                "- Devuelve SOLO el texto traducido, sin prefacios ni comillas.\n"
-                "- Preserva EXACTAMENTE cualquier token placeholder con la forma <<ADK_Pn>>.\n"
-                "- No inventes contenido ni cambies formato innecesariamente.\n"
-                "- Mantén Markdown tal cual (saltos de línea, viñetas), solo traduce texto.\n"
+                "Eres un traductor profesional de documentación técnica EN→ES.\n\n"
+                "REGLAS ESTRICTAS:\n"
+                "1. Traduce TODO el texto en español (títulos, párrafos, listas)\n"
+                "2. Traduce COMENTARIOS dentro del código (#, //, /* */)\n"
+                "3. PRESERVA EXACTAMENTE sin cambios:\n"
+                "   - Bloques de código (```python, ```javascript, etc.) EXCEPTO comentarios\n"
+                "   - Código inline entre backticks `como esto`\n"
+                "   - URLs y links [texto](url)\n"
+                "   - HTML tags y atributos\n"
+                "   - Frontmatter YAML (---)\n"
+                "   - Nombres de variables, funciones, clases, imports\n"
+                "   - Paths, comandos, strings de código\n"
+                "4. Mantén el formato Markdown idéntico\n"
+                "5. NO agregues explicaciones, solo devuelve el Markdown traducido\n\n"
+                "Devuelve SOLO el documento traducido, sin prefacios ni metadata."
             ),
             tools=[],
         )
@@ -116,14 +125,3 @@ class AdkTranslator:
             raise RuntimeError("El agente no devolvió respuesta final.")
 
         return final_text
-
-    async def translate_many_texts(
-        self, texts: list[str], *, jobs: int = 4
-    ) -> list[str]:
-        semaphore = asyncio.Semaphore(max(1, jobs))
-
-        async def run_one(t: str) -> str:
-            async with semaphore:
-                return await self.translate_text(t)
-
-        return await asyncio.gather(*(run_one(t) for t in texts))

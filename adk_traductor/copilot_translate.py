@@ -45,13 +45,23 @@ class CopilotTranslator:
         await self._ensure_session()
         
         prompt = (
-            f"Eres un traductor profesional EN→ES.\n"
-            f"Reglas estrictas:\n"
-            f"- Devuelve SOLO el texto traducido, sin prefacios ni comillas.\n"
-            f"- Preserva EXACTAMENTE cualquier token placeholder con la forma <<ADK_Pn>>.\n"
-            f"- No inventes contenido ni cambies formato innecesariamente.\n"
-            f"- Mantén Markdown tal cual (saltos de línea, viñetas), solo traduce texto.\n\n"
-            f"Texto a traducir:\n{text}"
+            f"Eres un traductor profesional de documentación técnica EN→ES.\n\n"
+            f"REGLAS ESTRICTAS:\n"
+            f"1. Traduce TODO el texto en español (títulos, párrafos, listas)\n"
+            f"2. Traduce COMENTARIOS dentro del código (#, //, /* */)\n"
+            f"3. PRESERVA EXACTAMENTE sin cambios:\n"
+            f"   - Bloques de código (```python, ```javascript, etc.) EXCEPTO comentarios\n"
+            f"   - Código inline entre backticks `como esto`\n"
+            f"   - URLs y links [texto](url)\n"
+            f"   - HTML tags y atributos\n"
+            f"   - Frontmatter YAML (---)\n"
+            f"   - Nombres de variables, funciones, clases, imports\n"
+            f"   - Paths, comandos, strings de código\n"
+            f"4. Mantén el formato Markdown idéntico\n"
+            f"5. NO agregues explicaciones, solo devuelve el Markdown traducido\n\n"
+            f"Devuelve SOLO el documento traducido, sin prefacios ni metadata.\n\n"
+            f"---\n\n"
+            f"{text}"
         )
         
         response = await self._session.send_and_wait({"prompt": prompt})
@@ -60,18 +70,6 @@ class CopilotTranslator:
             return response.data.content.strip()
         
         raise RuntimeError("Copilot SDK no devolvió respuesta válida.")
-
-    async def translate_many_texts(
-        self, texts: list[str], *, jobs: int = 4
-    ) -> list[str]:
-        """Translate multiple texts concurrently."""
-        sem = asyncio.Semaphore(jobs)
-
-        async def _translate_with_limit(t: str) -> str:
-            async with sem:
-                return await self.translate_text(t)
-
-        return await asyncio.gather(*[_translate_with_limit(t) for t in texts])
 
     async def cleanup(self):
         """Cleanup Copilot client resources."""
