@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Protocol
 
 from .adk_translate import AdkTranslateConfig, AdkTranslator
-from .copilot_translate import CopilotTranslateConfig, CopilotTranslator
 
 
 class Translator(Protocol):
@@ -22,12 +21,13 @@ class TranslateOptions:
 
 
 def _create_translator(options: TranslateOptions) -> Translator:
-    provider = options.provider
-    if provider == "copilot-sdk":
-        config = CopilotTranslateConfig(model=options.model)
-        return CopilotTranslator(config=config)
-    config = AdkTranslateConfig(model=options.model, provider=provider)
-    return AdkTranslator(config=config)
+    """Factory para crear translator - todos usan AdkTranslator ahora."""
+    return AdkTranslator(
+        AdkTranslateConfig(
+            model=options.model,
+            provider=options.provider,
+        )
+    )
 
 
 async def translate_file(input_path: Path, output_path: Path, *, options: TranslateOptions) -> None:

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from google.adk.agents import Agent
+from google.adk.events import Event
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
@@ -22,7 +23,7 @@ except ImportError:
 @dataclass(frozen=True)
 class AdkTranslateConfig:
     model: str = "gemini-2.5-flash"
-    provider: Literal["gemini", "openai", "anthropic", "github"] | None = None
+    provider: Literal["gemini", "openai", "anthropic", "github", "copilot-sdk"] | None = None
     app_name: str = "adk_md_translator"
     user_id: str = "translator"
 
@@ -52,8 +53,10 @@ class AdkTranslator:
                 "   - Nombres de variables, funciones, clases, imports\n"
                 "   - Paths, comandos, strings de código\n"
                 "4. Mantén el formato Markdown idéntico\n"
-                "5. NO agregues explicaciones, solo devuelve el Markdown traducido\n\n"
-                "Devuelve SOLO el documento traducido, sin prefacios ni metadata."
+                "5. Tu respuesta debe empezar INMEDIATAMENTE con el contenido traducido\n"
+                "6. NO escribas: 'Aquí está', 'Traducción completada', ni ningún texto adicional\n"
+                "7. NO agregues líneas con '---' al inicio o final\n"
+                "8. La primera línea de tu respuesta DEBE ser la primera línea del documento traducido"
             ),
             tools=[],
         )
@@ -66,6 +69,11 @@ class AdkTranslator:
         # Sin provider o gemini explícito -> string directo (default behavior)
         if provider is None or provider == "gemini":
             return model
+
+        # Copilot SDK -> usar custom model wrapper
+        if provider == "copilot-sdk":
+            from .copilot_model import CopilotModel
+            return CopilotModel(model)
 
         # Provider externo -> requiere LiteLLM
         if not LITELLM_AVAILABLE:
@@ -88,10 +96,14 @@ class AdkTranslator:
         return LiteLlm(model=litellm_model)
 
     def _ensure_api_key(self) -> None:
-        if not os.getenv("GOOGLE_API_KEY"):
-            raise RuntimeError(
-                "Falta GOOGLE_API_KEY en el entorno. Configúrala para usar Gemini."
-            )
+        """Valida API key solo si se usa Gemini directo."""
+        provider = self._config.provider
+        # Solo Gemini directo requiere GOOGLE_API_KEY
+        if provider is None or provider == "gemini":
+            if not os.getenv("GOOGLE_API_KEY"):
+                raise RuntimeError(
+                    "Falta GOOGLE_API_KEY en el entorno. Configúrala para usar Gemini."
+                )
 
     async def translate_text(self, text: str) -> str:
         self._ensure_api_key()
@@ -104,11 +116,30 @@ class AdkTranslator:
         )
 
         session_id = str(uuid.uuid4())
-        await session_service.create_session(
+        session = await session_service.create_session(
             app_name=self._config.app_name,
             user_id=self._config.user_id,
             session_id=session_id,
         )
+
+        # Ensure Copilot receives an explicit system message. In our environment,
+        # the agent instruction is not always forwarded into LlmRequest.config.system_instruction
+        # for custom models, so we append it to the session history.
+        if self._config.provider == "copilot-sdk":
+            system_text = getattr(self._agent, "instruction", None)
+            if isinstance(system_text, str) and system_text.strip():
+                await session_service.append_event(
+                    session,
+                    Event(
+                        author=getattr(self._agent, "name", "md_translator"),
+                        content=types.Content(
+                            role="system",
+                            parts=[types.Part(text=system_text)],
+                        ),
+                        partial=False,
+                        turn_complete=True,
+                    ),
+                )
 
         content = types.Content(role="user", parts=[types.Part(text=text)])
 

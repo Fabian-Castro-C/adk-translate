@@ -52,7 +52,6 @@ async def _run(args: argparse.Namespace) -> int:
 
     if args.cmd == "batch":
         options = TranslateOptions(
-            translate_code_comments=args.translate_code_comments,
             model=args.model,
             provider=args.provider,
             overwrite=args.overwrite,
