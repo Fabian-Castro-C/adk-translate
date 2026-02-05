@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+adk_traductor/__init__.py
+adk_traductor/adk_translate.py
+adk_traductor/cli.py
+adk_traductor/pipeline.py
+adk_traductor.egg-info/PKG-INFO
+adk_traductor.egg-info/SOURCES.txt
+adk_traductor.egg-info/dependency_links.txt
+adk_traductor.egg-info/entry_points.txt
+adk_traductor.egg-info/requires.txt
+adk_traductor.egg-info/top_level.txt
+adk_traductor/md/__init__.py
+adk_traductor/md/comments.py
+adk_traductor/md/protect.py
+adk_traductor/md/segmenter.py
+tests/test_basic.py
