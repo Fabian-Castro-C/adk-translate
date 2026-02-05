@@ -1,0 +1,9 @@
+[project]
+name = "adk-traductor"
+version = "0.1.0"
+description = "Traductor EN→ES de Markdown usando Google ADK"
+requires-python = ">=3.13"
+dependencies = ["google-adk>=1.23.0"]
+
+[project.scripts]
+translate = "adk_traductor.cli:main"
