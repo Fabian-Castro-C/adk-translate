@@ -60,6 +60,13 @@ $env:ANTHROPIC_API_KEY="sk-ant-..."
 $env:GITHUB_TOKEN="ghp_..."
 ```
 
+**Opción E: Usar GitHub Copilot SDK** (no requiere API keys, usa tu sesión de Copilot)
+
+```powershell
+# Requisito: tener GitHub Copilot CLI instalado y 'copilot' en PATH
+# No necesita API keys adicionales - usa tu sesión activa de Copilot
+```
+
 ### 3. Uso Básico
 
 ```powershell
@@ -87,13 +94,20 @@ uv run translate.py file `
   --provider github `
   --model gpt-4o
 
+# Traducir con GitHub Copilot SDK (usa tu sesión de Copilot, sin API keys)
+uv run translate.py file `
+  --in examples/sample.md `
+  --out output/sample_es.md `
+  --provider copilot-sdk `
+  --model gpt-4.1
+
 # Batch paralelo (múltiples archivos)
 uv run translate.py batch `
   --paths examples/sample.md examples/another.md `
   --root examples `
   --out-dir output `
   --jobs 4 `
-  --provider openai
+  --provider copilot-sdk
 ```
 
 ## 📖 Comandos CLI
@@ -107,7 +121,7 @@ uv run translate.py file --in INPUT.md --out OUTPUT.md [OPTIONS]
 **Opciones**:
 - `--translate-code-comments`: Traduce comentarios dentro de code fences
 - `--overwrite`: Sobrescribe archivo de salida si existe
-- `--provider {gemini,openai,anthropic,github}`: Provider del LLM (default: gemini)
+- `--provider {gemini,openai,anthropic,github,copilot-sdk}`: Provider del LLM (default: gemini)
 - `--model MODEL_NAME`: Modelo específico (default: gemini-2.5-flash)
 
 ### `batch` - Traducir múltiples archivos
@@ -125,22 +139,36 @@ uv run translate.py batch `
 - `--translate-code-comments`: Traduce comentarios en código
 - `--fail-fast`: Detiene ejecución al primer error
 - `--overwrite`: Sobrescribe archivos existentes
-- `--provider {gemini,openai,anthropic,github}`: Provider del LLM
+- `--provider {gemini,openai,anthropic,github,copilot-sdk}`: Provider del LLM
 - `--model MODEL_NAME`: Modelo específico
 
 ## 🌐 Providers Soportados
 
-| Provider | Modelos Ejemplo | API Key Required | Install Extra |
-|----------|-----------------|------------------|---------------|
-| **Gemini** (default) | `gemini-2.5-flash`, `gemini-2.5-pro` | `GOOGLE_API_KEY` | ❌ |
-| **OpenAI** | `gpt-4o`, `gpt-4o-mini` | `OPENAI_API_KEY` | ✅ `litellm` |
-| **Anthropic** | `claude-sonnet-4-20250514`, `claude-opus-4-20250514` | `ANTHROPIC_API_KEY` | ✅ `litellm` |
-| **GitHub** | `gpt-4o`, `claude-3-opus` | `GITHUB_TOKEN` | ✅ `litellm` |
+| Provider | Modelos Ejemplo | API Key Required | Install Extra | Notas |
+|----------|-----------------|------------------|---------------|-------|
+| **Gemini** (default) | `gemini-2.5-flash`, `gemini-2.5-pro` | `GOOGLE_API_KEY` | ❌ | Default, más rápido |
+| **OpenAI** | `gpt-4o`, `gpt-4o-mini` | `OPENAI_API_KEY` | ✅ `litellm` | Vía LiteLLM |
+| **Anthropic** | `claude-sonnet-4-20250514`, `claude-opus-4-20250514` | `ANTHROPIC_API_KEY` | ✅ `litellm` | Vía LiteLLM |
+| **GitHub Models** | `gpt-4o`, `claude-3-opus` | `GITHUB_TOKEN` | ✅ `litellm` | Vía LiteLLM |
+| **Copilot SDK** | `gpt-4.1`, `gpt-4o` | ❌ (usa tu sesión) | ✅ `copilot` | Requiere Copilot CLI |
 
-**Nota**: Los providers externos requieren instalar LiteLLM:
+**Instalación de extras**:
 ```powershell
+# Para OpenAI, Anthropic, GitHub Models
 uv sync --extra litellm
+
+# Para Copilot SDK
+uv sync --extra copilot
+
+# Para todos los providers
+uv sync --extra all
 ```
+
+**Nota sobre Copilot SDK**: 
+- Requiere tener instalado y configurado el [GitHub Copilot CLI](https://docs.github.com/en/copilot/using-github-copilot/using-github-copilot-in-the-command-line)
+- El comando `copilot` debe estar disponible en tu PATH
+- No consume tu cuota de API keys de Google/OpenAI/Anthropic
+- Usa tu suscripción existente de GitHub Copilot
 
 ## 🔬 Tests
 

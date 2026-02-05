@@ -100,6 +100,23 @@ async def translate_markdown(
     return join_segments(out)
 
 
+def _create_translator(options: TranslateOptions) -> Translator:
+    """Factory function to create the appropriate translator based on provider."""
+    provider = options.provider
+    
+    # Copilot SDK uses different config and class
+    if provider == "copilot-sdk":
+        config = CopilotTranslateConfig(model=options.model)
+        return CopilotTranslator(config=config)
+    
+    # All other providers use ADK (with optional LiteLLM wrapper)
+    config = AdkTranslateConfig(
+        model=options.model,
+        provider=provider,
+    )
+    return AdkTranslator(config=config)
+
+
 async def translate_file(
     input_path: Path,
     output_path: Path,

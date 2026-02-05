@@ -7,6 +7,8 @@ dependencies = ["google-adk>=1.23.0"]
 
 [project.optional-dependencies]
 litellm = ["litellm>=1.0.0"]
+copilot = ["github-copilot-sdk>=0.1.0"]
+all = ["litellm>=1.0.0", "github-copilot-sdk>=0.1.0"]
 
 [project.scripts]
 translate = "adk_traductor.cli:main"
